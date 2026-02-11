@@ -3,7 +3,7 @@
   "gitFlow": false,
   "changelog": { "dateLocale": "en-US", "path": "CHANGELOG.md" },
   "tag": { "prefix": "v", "deleteIfExists": true },
-  "allowReleaseFrom": ["develop"],
+  "allowReleaseFrom": ["main"],
   "github": { "release": true },
   "hooks": { "beforeRelease": [], "afterBump": [], "afterRelease": [] }
 }
