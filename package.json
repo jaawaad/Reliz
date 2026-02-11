@@ -1,0 +1,41 @@
+{
+  "name": "reliz",
+  "version": "1.0.0",
+  "description": "Release automation CLI for Node.js: semver version bump, auto CHANGELOG, Git Flow or linear workflow, optional npm publish & GitHub/GitLab releases. Zero dependencies, configurable, CI-ready.",
+  "main": "src/index.js",
+  "bin": {
+    "reliz": "bin/easy-release.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schema"
+  ],
+  "scripts": {
+    "release": "node bin/easy-release.js",
+    "release:patch": "node bin/easy-release.js patch",
+    "release:minor": "node bin/easy-release.js minor",
+    "release:major": "node bin/easy-release.js major"
+  },
+  "keywords": [
+    "release",
+    "release-automation",
+    "version",
+    "semver",
+    "version-bump",
+    "changelog",
+    "git-flow",
+    "gitflow",
+    "npm-publish",
+    "github-release",
+    "gitlab-release",
+    "ci",
+    "cli",
+    "nodejs"
+  ],
+  "author": "Jaawaad",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

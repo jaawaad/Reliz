@@ -1,0 +1,8 @@
+{
+  "$schema": "./schema/config.schema.json",
+  "gitFlow": true,
+  "changelog": { "dateLocale": "fa-IR", "path": "CHANGELOG.md" },
+  "tag": { "prefix": "v", "deleteIfExists": true },
+  "allowReleaseFrom": ["develop"],
+  "hooks": { "beforeRelease": [], "afterBump": [], "afterRelease": [] }
+}

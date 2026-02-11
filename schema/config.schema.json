@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Reliz Config",
+  "description": "Configuration for reliz",
+  "type": "object",
+  "properties": {
+    "gitFlow": { "type": "boolean", "default": true, "description": "Use git-flow release workflow" },
+    "git": {
+      "type": "object",
+      "properties": {
+        "requireUpstream": { "type": "boolean", "default": false, "description": "Require branch to have upstream" },
+        "pushArgs": { "type": "array", "items": { "type": "string" }, "default": ["--follow-tags"], "description": "Extra args for git push" }
+      }
+    },
+    "branches": {
+      "type": "object",
+      "properties": {
+        "main": { "type": "string", "default": "main" },
+        "develop": { "type": "string", "default": "develop" }
+      }
+    },
+    "releaseBranchPrefix": { "type": "string", "default": "release/" },
+    "changelog": {
+      "type": "object",
+      "properties": {
+        "dateLocale": { "type": "string", "enum": ["fa-IR", "en-US"], "default": "fa-IR" },
+        "path": { "type": "string", "default": "CHANGELOG.md" },
+        "template": { "type": ["string", "null"] },
+        "command": { "type": ["string", "null"], "description": "Shell command for changelog text; vars: ${from}, ${to}, ${version}, ${latestVersion}" },
+        "releaseNotesCommand": { "type": ["string", "null"], "description": "Shell command for release notes (e.g. GitHub body)" },
+        "includeTypes": { "type": ["array", "null"], "items": { "type": "string" }, "description": "Conventional types to include (e.g. feat, fix)" },
+        "groupByType": { "type": "boolean", "default": false, "description": "Group commits by conventional type" }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "properties": {
+        "prefix": { "type": "string", "default": "v" },
+        "deleteIfExists": { "type": "boolean", "default": true }
+      }
+    },
+    "syncBranches": { "type": "boolean", "default": true },
+    "requireCleanWorkingDir": { "type": "boolean", "default": true },
+    "allowReleaseFrom": { "type": "array", "items": { "type": "string" }, "default": ["develop"] },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "beforeInit": { "type": "array", "items": { "type": "string" } },
+        "beforeRelease": { "type": "array", "items": { "type": "string" } },
+        "afterBump": { "type": "array", "items": { "type": "string" } },
+        "afterGitRelease": { "type": "array", "items": { "type": "string" } },
+        "afterRelease": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "npm": {
+      "type": "object",
+      "properties": {
+        "publish": { "type": "boolean", "default": false },
+        "publishPath": { "type": "string", "default": "." },
+        "tag": { "type": "string", "default": "latest", "description": "npm publish --tag" },
+        "otp": { "type": ["string", "null"], "description": "2FA OTP or use NPM_OTP env" }
+      }
+    },
+    "github": {
+      "type": "object",
+      "properties": {
+        "release": { "type": "boolean", "default": false },
+        "tokenRef": { "type": "string", "default": "GITHUB_TOKEN" },
+        "draft": { "type": "boolean", "default": false },
+        "preRelease": { "type": "boolean", "default": false }
+      }
+    },
+    "gitlab": {
+      "type": "object",
+      "properties": {
+        "release": { "type": "boolean", "default": false },
+        "tokenRef": { "type": "string", "default": "GITLAB_TOKEN" }
+      }
+    },
+    "conventionalCommits": { "type": "boolean", "default": false },
+    "commitMessage": { "type": "string" },
+    "tagMessage": { "type": "string" },
+    "preRelease": {
+      "type": "object",
+      "properties": {
+        "id": { "type": ["string", "null"], "description": "Pre-release id (e.g. alpha, beta, rc)" }
+      }
+    },
+    "plugins": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Plugin module paths" }
+  }
+}
