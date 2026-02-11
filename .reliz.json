@@ -1,6 +1,6 @@
 {
   "$schema": "./schema/config.schema.json",
-  "gitFlow": true,
+  "gitFlow": false,
   "changelog": { "dateLocale": "en-US", "path": "CHANGELOG.md" },
   "tag": { "prefix": "v", "deleteIfExists": true },
   "allowReleaseFrom": ["develop"],
