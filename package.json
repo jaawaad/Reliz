@@ -1,6 +1,6 @@
 {
   "name": "reliz",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Release automation CLI for Node.js: semver version bump, auto CHANGELOG, Git Flow or linear workflow, optional npm publish & GitHub/GitLab releases. Zero dependencies, configurable, CI-ready.",
   "main": "src/index.js",
   "bin": {
