@@ -4,7 +4,7 @@
   "description": "Release automation CLI for Node.js: semver version bump, auto CHANGELOG, Git Flow or linear workflow, optional npm publish & GitHub/GitLab releases. Zero dependencies, configurable, CI-ready.",
   "main": "src/index.js",
   "bin": {
-    "reliz": "bin/easy-release.js"
+    "reliz": "bin/reliz.js"
   },
   "files": [
     "bin",
@@ -12,10 +12,10 @@
     "schema"
   ],
   "scripts": {
-    "release": "node bin/easy-release.js",
-    "release:patch": "node bin/easy-release.js patch",
-    "release:minor": "node bin/easy-release.js minor",
-    "release:major": "node bin/easy-release.js major"
+    "release": "node bin/reliz.js",
+    "release:patch": "node bin/reliz.js patch",
+    "release:minor": "node bin/reliz.js minor",
+    "release:major": "node bin/reliz.js major"
   },
   "keywords": [
     "release",
@@ -35,6 +35,7 @@
   ],
   "author": "Jaawaad",
   "license": "MIT",
+  "repository": "github:jaawaad/Reliz",
   "engines": {
     "node": ">=14.0.0"
   }
