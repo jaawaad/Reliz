@@ -4,11 +4,42 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 /**
- * @returns {string|null} Latest tag name or null if none
+ * @returns {string|null} Latest tag name or null if none (e.g. "v1.0.1" or "1.0.1")
  */
 function getLatestTag() {
   try {
-    return execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
+    const out = execSync('git describe --tags --abbrev=0', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    const match = out.match(/^(.+?)-\d+-g[a-f0-9]+$/);
+    const baseRef = match ? match[1] : out;
+    const sha = resolveToCommit(baseRef) || resolveToCommit(out);
+    if (sha) {
+      const tagsAt = execSync('git tag -l --points-at ' + JSON.stringify(sha), {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).trim().split('\n').filter(Boolean);
+      if (tagsAt.length > 0) return tagsAt[0];
+    }
+    return match ? match[1] : out;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Resolve a tag or ref to a commit SHA (avoids "externally known" warning in git log).
+ * @param {string} ref
+ * @returns {string|null} SHA or null
+ */
+function resolveToCommit(ref) {
+  try {
+    const refWithCommit = ref + '^{commit}';
+    return execSync('git rev-parse --verify ' + JSON.stringify(refWithCommit), {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
   } catch (_) {
     return null;
   }
@@ -22,7 +53,11 @@ function getNewCommits(fromTag = null) {
   const lastTag = fromTag !== undefined && fromTag !== null ? fromTag : getLatestTag();
   try {
     if (!lastTag) throw new Error('No tag');
-    const commits = execSync(`git log ${lastTag}..HEAD --oneline --no-merges`, { encoding: 'utf8' })
+    const fromRev = resolveToCommit(lastTag) || lastTag;
+    const commits = execSync(`git log ${fromRev}..HEAD --oneline --no-merges`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
       .trim()
       .split('\n')
       .filter(line => line.trim())
