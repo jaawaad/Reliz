@@ -83,9 +83,8 @@ function ensureCleanWorkingTree() {
 function ensureOriginRemote() {
   try {
     execSync('git remote get-url origin', { stdio: 'ignore' });
-    execSync('git ls-remote --exit-code origin', { stdio: 'ignore' });
   } catch (e) {
-    throw new Error('Remote "origin" does not exist or is not reachable.');
+    throw new Error('Remote "origin" does not exist.');
   }
 }
 
@@ -163,6 +162,7 @@ function createTag(version, tagConfig, tagMessage, dryRun) {
   return tagName;
 }
 
+// TODO : pushTag and pushBranch should be refactored to use the same logic
 /**
  * @param {string} tagName
  * @param {boolean} dryRun

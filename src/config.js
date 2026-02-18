@@ -187,15 +187,15 @@ function loadConfig(cwd, argv) {
 
   let config = deepMerge(defaults, fileConfig);
 
-  if (envOverrides.ci) config = { ...config, ci: true };
-  if (envOverrides.dryRun) config = { ...config, dryRun: true };
-  if (envOverrides.bump) config = { ...config, bump: envOverrides.bump };
-
   const preid = parsed.preid || envOverrides.preid || config.preRelease?.id || null;
-  if (preid) config = { ...config, preRelease: { ...config.preRelease, id: preid } };
+  const isCi = parsed.ci || !!envOverrides.ci || config.ci === true || (config.ci !== false && isCiEnv());
 
-  const isCi = parsed.ci || config.ci === true || (config.ci !== false && isCiEnv());
-  if (isCi) config = { ...config, ci: true };
+  config = deepMerge(config, {
+    ...(envOverrides.dryRun && { dryRun: true }),
+    ...(envOverrides.bump   && { bump: envOverrides.bump }),
+    ...(preid               && { preRelease: { id: preid } }),
+    ...(isCi                && { ci: true }),
+  });
 
   return {
     config,

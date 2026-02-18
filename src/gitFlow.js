@@ -4,6 +4,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 const { setPackageVersion } = require('./version.js');
 const { appendChangelogEntry } = require('./changelog.js');
+const { interpolate } = require('./hooks.js');
 
 /**
  * @param {{ currentBranch: string, config: object }} context
@@ -28,14 +29,14 @@ function syncBranches(context) {
 }
 
 /**
- * Update package.json and CHANGELOG. Uses context.commits, context.dateStr, context.version.
- * @param {{ cwd: string, config: object, version: string, commits: string[], dateStr: string }} context
+ * Update package.json and CHANGELOG. Uses context.changelogText, context.dateStr, context.version.
+ * @param {{ cwd: string, config: object, version: string, changelogText: string, dateStr: string }} context
  */
 function updateFiles(context) {
-  const { cwd, config, version, commits, dateStr } = context;
+  const { cwd, config, version, changelogText, dateStr } = context;
   setPackageVersion(cwd, version);
   const changelogPath = path.join(cwd, config.changelog?.path || 'CHANGELOG.md');
-  appendChangelogEntry(changelogPath, version, dateStr, commits, config.changelog?.template);
+  appendChangelogEntry(changelogPath, version, dateStr, changelogText, config.changelog?.template);
 }
 
 /**
@@ -67,7 +68,7 @@ function performGitFlowRelease(context) {
 
   if (!dryRun) {
     updateFiles(updateContext);
-    const commitMsg = (config.commitMessage || 'release: update version to ${version} and changelog').replace(/\$\{version\}/g, newVersion);
+    const commitMsg = interpolate(config.commitMessage || 'release: update version to ${version} and changelog', { version: newVersion });
     console.log('Committing updated files...');
     execSync('git add .', { stdio: 'inherit', cwd });
     execSync(`git commit -m "${commitMsg.replace(/"/g, '\\"')}"`, { stdio: 'inherit', cwd });
@@ -89,7 +90,7 @@ function performGitFlowRelease(context) {
       } else throw pushErr;
     }
 
-    const tagMsg = (config.tagMessage || `Release-${newVersion}`).replace(/\$\{version\}/g, newVersion);
+    const tagMsg = interpolate(config.tagMessage || `Release-${newVersion}`, { version: newVersion });
     console.log(`Finishing git flow release: ${newVersion}`);
     execSync(`GIT_MERGE_AUTOEDIT=no GIT_EDITOR=true git flow release finish -m "${tagMsg}" ${newVersion}`, { stdio: 'inherit', cwd });
 

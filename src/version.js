@@ -3,8 +3,6 @@
 const path = require('path');
 const fs = require('fs');
 
-const BUMP_TYPES = ['patch', 'minor', 'major', 'hotfix'];
-
 /**
  * Increase version by type. If preId is set (e.g. 'alpha', 'beta', 'rc'), appends prerelease segment.
  * @param {string} currentVersion
@@ -103,6 +101,5 @@ module.exports = {
   increaseVersion,
   getCurrentVersion,
   setPackageVersion,
-  suggestBumpFromCommits,
-  BUMP_TYPES
+  suggestBumpFromCommits
 };
