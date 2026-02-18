@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { interpolate } = require('./hooks.js');
 
 /**
  * Format date for changelog (Persian or Gregorian).
@@ -32,16 +33,12 @@ const DEFAULT_ENTRY_TEMPLATE = '## **[${version}] - ${date}**\n${commits}\n\n';
  * @param {string} changelogPath - Full path to CHANGELOG.md
  * @param {string} version
  * @param {string} dateStr
- * @param {string[]} commits
+ * @param {string} changelogText - pre-filtered and pre-formatted commit lines
  * @param {string|null} template - optional, placeholders: ${version}, ${date}, ${commits}
  */
-function appendChangelogEntry(changelogPath, version, dateStr, commits, template = null) {
+function appendChangelogEntry(changelogPath, version, dateStr, changelogText, template = null) {
   const tpl = template || DEFAULT_ENTRY_TEMPLATE;
-  const commitLines = commits.map(c => `- ${c}`).join('\n');
-  const entry = tpl
-    .replace(/\$\{version\}/g, version)
-    .replace(/\$\{date\}/g, dateStr)
-    .replace(/\$\{commits\}/g, commitLines);
+  const entry = interpolate(tpl, { version, date: dateStr, commits: changelogText });
 
   let content = '';
   if (fs.existsSync(changelogPath)) {
@@ -116,11 +113,12 @@ function filterAndFormatCommits(commits, options = {}) {
  * @returns {string}
  */
 function runChangelogCommand(cwd, command, vars = {}) {
-  let cmd = command
-    .replace(/\$\{from\}/g, vars.from ?? '')
-    .replace(/\$\{to\}/g, vars.to ?? 'HEAD')
-    .replace(/\$\{version\}/g, vars.version ?? '')
-    .replace(/\$\{latestVersion\}/g, vars.latestVersion ?? '');
+  const cmd = interpolate(command, {
+    from: vars.from ?? '',
+    to: vars.to ?? 'HEAD',
+    version: vars.version ?? '',
+    latestVersion: vars.latestVersion ?? ''
+  });
   const out = execSync(cmd, { encoding: 'utf8', cwd });
   return (out && out.trim()) || '';
 }
