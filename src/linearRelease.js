@@ -12,7 +12,7 @@ const { appendChangelogEntry } = require('./changelog.js');
  * @param {{ cwd: string, config: object, version: string, dryRun: boolean, commits: string[], dateStr: string }} context
  */
 function performLinearRelease(context) {
-  const { cwd, config, version: newVersion, dryRun, commits, dateStr } = context;
+  const { cwd, config, version: newVersion, dryRun, commits, dateStr, notes } = context;
 
   console.log('Starting linear release (no git-flow)...');
 
@@ -21,7 +21,7 @@ function performLinearRelease(context) {
 
   if (!dryRun) {
     setPackageVersion(cwd, newVersion);
-    appendChangelogEntry(changelogPath, newVersion, dateStr, commits, config.changelog?.template);
+    appendChangelogEntry(changelogPath, newVersion, dateStr, commits, config.changelog?.template, notes);
 
     console.log('Committing...');
     execSync('git add .', { stdio: 'inherit', cwd });

@@ -39,10 +39,10 @@ function syncBranches(context) {
  * @param {{ cwd: string, config: object, version: string, commits: string[], dateStr: string }} context
  */
 function updateFiles(context) {
-  const { cwd, config, version, commits, dateStr } = context;
+  const { cwd, config, version, commits, dateStr, notes } = context;
   setPackageVersion(cwd, version);
   const changelogPath = path.join(cwd, config.changelog?.path || 'CHANGELOG.md');
-  appendChangelogEntry(changelogPath, version, dateStr, commits, config.changelog?.template);
+  appendChangelogEntry(changelogPath, version, dateStr, commits, config.changelog?.template, notes);
 }
 
 /**

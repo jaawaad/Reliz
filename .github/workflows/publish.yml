@@ -31,6 +31,18 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        run: gh release create ${{ github.ref_name }} --generate-notes --title "${{ github.ref_name }}" --draft
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          NOTES_FILE="RELEASE_NOTES.md"
+          # Publish custom notes only when the first line matches this tag,
+          # so stale notes from a previous release are never reused.
+          if [ -f "$NOTES_FILE" ] && [ "$(head -n 1 "$NOTES_FILE" | tr -d '[:space:]')" = "$TAG" ]; then
+            echo "Using custom release notes from $NOTES_FILE for $TAG"
+            tail -n +2 "$NOTES_FILE" > /tmp/release_notes.md
+            gh release create "$TAG" --title "$TAG" --notes-file /tmp/release_notes.md
+          else
+            echo "No matching custom notes; falling back to auto-generated draft."
+            gh release create "$TAG" --title "$TAG" --generate-notes --draft
+          fi

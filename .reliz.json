@@ -4,6 +4,6 @@
   "changelog": { "dateLocale": "en-US", "path": "CHANGELOG.md" },
   "tag": { "prefix": "v", "deleteIfExists": true },
   "allowReleaseFrom": ["main"],
-  "github": { "release": true },
+  "github": { "release": false },
   "hooks": { "beforeRelease": [], "afterBump": [], "afterRelease": [] }
 }

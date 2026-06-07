@@ -41,15 +41,19 @@ const DEFAULT_ENTRY_TEMPLATE = '## **[${version}] - ${date}**\n${commits}\n\n';
  * @param {string} version
  * @param {string} dateStr
  * @param {string[]} commits
- * @param {string|null} template - optional, placeholders: ${version}, ${date}, ${commits}
+ * @param {string|null} template - optional, placeholders: ${version}, ${date}, ${commits}, ${notes}
+ * @param {string|null} notes - manual release notes; when provided, used as the entry body
  */
-function appendChangelogEntry(changelogPath, version, dateStr, commits, template = null) {
+function appendChangelogEntry(changelogPath, version, dateStr, commits, template = null, notes = null) {
   const tpl = template || DEFAULT_ENTRY_TEMPLATE;
   const commitLines = commits.map(c => `- ${c}`).join('\n');
+  // Manual notes take over the body (the ${commits} slot) when present.
+  const body = (notes != null && String(notes).trim() !== '') ? String(notes).trim() : commitLines;
   const entry = tpl
     .replace(/\$\{version\}/g, version)
     .replace(/\$\{date\}/g, dateStr)
-    .replace(/\$\{commits\}/g, commitLines);
+    .replace(/\$\{notes\}/g, notes != null ? String(notes).trim() : '')
+    .replace(/\$\{commits\}/g, body);
 
   let content = '';
   if (fs.existsSync(changelogPath)) {
@@ -162,8 +166,12 @@ function getChangelogText(context) {
  * @returns {string}
  */
 function getReleaseNotesBody(context) {
-  const { cwd, config, version, dateStr, commits = [], latestVersion, latestTag } = context;
+  const { cwd, config, version, dateStr, commits = [], latestVersion, latestTag, notes } = context;
   const ch = config.changelog || {};
+  // Manual notes (interactive editor / --notes) win over everything else.
+  if (notes != null && String(notes).trim() !== '') {
+    return `## ${version} - ${dateStr}\n\n${String(notes).trim()}`;
+  }
   if (ch.releaseNotesCommand && typeof ch.releaseNotesCommand === 'string') {
     const body = runChangelogCommand(cwd, ch.releaseNotesCommand, {
       from: latestTag ?? '',
