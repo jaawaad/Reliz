@@ -35,7 +35,11 @@
     "tag": {
       "type": "object",
       "properties": {
-        "prefix": { "type": "string", "default": "v" },
+        "prefix": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Tag prefix. When null (default), reliz resolves it automatically: it inherits `gitflow.prefix.versiontag` when git-flow is enabled, otherwise falls back to \"v\". When set to a string (including \"\"), reliz honours it and — under git-flow — syncs `gitflow.prefix.versiontag` so the tag git-flow creates matches."
+        },
         "deleteIfExists": { "type": "boolean", "default": true }
       }
     },

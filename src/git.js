@@ -133,7 +133,7 @@ function ensureGitFlowInstalled() {
  * @param {boolean} dryRun
  */
 function ensureTagNotExists(version, tagConfig, dryRun) {
-  const prefix = tagConfig.prefix || 'v';
+  const prefix = tagConfig.prefix ?? 'v';
   const tagName = prefix ? `${prefix}${version}` : version;
   try {
     const localTags = execSync('git tag', { encoding: 'utf8' }).split('\n').filter(Boolean);
@@ -164,7 +164,7 @@ function ensureTagNotExists(version, tagConfig, dryRun) {
  * @param {boolean} dryRun
  */
 function createTag(version, tagConfig, tagMessage, dryRun) {
-  const prefix = tagConfig.prefix || 'v';
+  const prefix = tagConfig.prefix ?? 'v';
   const tagName = prefix ? `${prefix}${version}` : version;
   const msg = (tagMessage || `Release ${version}`).replace(/\$\{version\}/g, version);
   if (dryRun) {

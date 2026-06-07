@@ -1,3 +1,6 @@
+## **[1.2.0] - 04/22/2026**
+- feat: enhance tag prefix resolution for releases
+
 ## **[1.1.1] - 03/28/2026**
 - chore: update yarn.lock to reflect changes in dependencies and remove unnecessary metadata
 - chore: update CI workflow to allow write permissions for contents and add GitHub release creation step

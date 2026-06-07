@@ -14,6 +14,7 @@ const { createGitHubRelease } = require('./github.js');
 const { createGitLabRelease } = require('./gitlab.js');
 const { runSecurityAudit } = require('./security.js');
 const { loadPlugins, runPluginLifecycle, runPluginLifecycleAsync } = require('./plugins.js');
+const { resolveTagPrefix, buildTagName } = require('./tag.js');
 
 function run() {
   const cwd = process.cwd();
@@ -134,9 +135,17 @@ function run() {
       });
     })
     .then(({ newVersion, dateStr }) => {
+      // Resolve the effective tag prefix once so the whole pipeline (git-flow,
+      // linear release, tag-existence checks, summary, GitHub/GitLab release)
+      // agrees on a single tag name. Source precedence: explicit config →
+      // gitflow.prefix.versiontag → "v" fallback.
+      const { prefix: resolvedPrefix, source: tagPrefixSource } =
+        resolveTagPrefix(config, cwd);
       const tagConfig = config.tag || {};
-      const tagPrefix = tagConfig.prefix ?? 'v';
-      const tagName = tagPrefix ? `${tagPrefix}${newVersion}` : newVersion;
+      tagConfig.prefix = resolvedPrefix;
+      config.tag = tagConfig;
+
+      const expectedTagName = buildTagName(resolvedPrefix, newVersion);
       const latestTag = getLatestTag();
       const context = {
         cwd,
@@ -157,7 +166,10 @@ function run() {
         projectName,
         name: projectName,
         dateStr,
-        tagName,
+        tagName: expectedTagName,
+        expectedTagName,
+        tagPrefix: resolvedPrefix,
+        tagPrefixSource,
         releaseUrl: null
       };
       context.changelogText = getChangelogText(context);
@@ -188,13 +200,13 @@ function run() {
       }
       let releasePromise = Promise.resolve(null);
       if (config.github?.release) {
-        releasePromise = createGitHubRelease(cwd, tagName, releaseName, releaseBody, config.github, false)
+        releasePromise = createGitHubRelease(cwd, context.tagName, releaseName, releaseBody, config.github, false)
           .then((url) => { context.releaseUrl = url; return url; })
           .catch((err) => { console.warn('GitHub release failed:', err.message); return null; });
       }
       if (config.gitlab?.release) {
         releasePromise = releasePromise.then(() =>
-          createGitLabRelease(cwd, tagName, releaseName, releaseBody, config.gitlab, false)
+          createGitLabRelease(cwd, context.tagName, releaseName, releaseBody, config.gitlab, false)
         ).then((url) => {
           if (url) context.releaseUrl = context.releaseUrl || url;
           return context.releaseUrl;

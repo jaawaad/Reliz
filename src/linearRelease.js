@@ -31,6 +31,10 @@ function performLinearRelease(context) {
   }
 
   const tagName = createTag(newVersion, config.tag || {}, config.tagMessage, dryRun);
+  // Expose the actual tag name so downstream consumers (summary report,
+  // GitHub/GitLab release, hooks, plugins) use the real value even if the
+  // caller passed a different `context.tagName` placeholder.
+  context.tagName = tagName;
   const pushArgs = config.git?.pushArgs || [];
   if (!dryRun) {
     const branch = getCurrentBranch();

@@ -27,7 +27,10 @@ function getDefaults() {
       groupByType: false
     },
     tag: {
-      prefix: 'v',
+      // `null` means "auto-resolve": inherit from `gitflow.prefix.versiontag`
+      // when git-flow is enabled, otherwise fall back to `"v"`. Set an explicit
+      // string (including `""`) to force a specific prefix.
+      prefix: null,
       deleteIfExists: true
     },
     syncBranches: true,

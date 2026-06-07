@@ -98,7 +98,7 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
     "includeTypes": ["feat", "fix"],
     "groupByType": false
   },
-  "tag": { "prefix": "v", "deleteIfExists": true },
+  "tag": { "prefix": null, "deleteIfExists": true },
   "syncBranches": true,
   "requireCleanWorkingDir": true,
   "allowReleaseFrom": ["develop"],
@@ -153,7 +153,7 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
 | `changelog.releaseNotesCommand` | Shell command for release notes body | `null` |
 | `changelog.includeTypes` | Conventional types to include (e.g. `["feat","fix"]`) | `null` |
 | `changelog.groupByType` | Group commits by type in changelog | `false` |
-| `tag.prefix` | Tag prefix (e.g. `v`) | `v` |
+| `tag.prefix` | Tag prefix. `null` (default) auto-resolves: inherits `gitflow.prefix.versiontag` when git-flow is enabled, otherwise falls back to `v`. A string value (including `""`) forces a specific prefix and, under git-flow, keeps `gitflow.prefix.versiontag` in sync. | `null` |
 | `tag.deleteIfExists` | Remove existing tag before release | `true` |
 | `syncBranches` | Sync main/develop before release (git-flow) | `true` |
 | `requireCleanWorkingDir` | Require no uncommitted changes | `true` |
@@ -180,6 +180,16 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
 | `plugins` | Plugin module paths | `[]` |
 
 Hook commands support: `${version}`, `${latestVersion}`, `${changelog}`, `${name}`, `${cwd}`, `${tagName}`, `${branchName}`, `${latestTag}`, `${releaseUrl}` (after GitHub/GitLab release).
+
+### Tag prefix resolution
+
+Reliz resolves the tag prefix once per release and uses the same value for every step (tag creation, pushes, GitHub/GitLab release, summary report, hooks):
+
+1. **Explicit config** — `tag.prefix` set to any string (including `""`) wins. Under git-flow, reliz also syncs `gitflow.prefix.versiontag` so the tag git-flow creates matches the configured prefix.
+2. **git-flow inheritance** — when `gitFlow` is enabled and `tag.prefix` is not set, reliz reads `gitflow.prefix.versiontag` from the local git config and uses that (this is what `git flow init` writes).
+3. **Fallback** — otherwise `"v"` is used.
+
+After `git flow release finish`, reliz verifies that the expected tag was actually created. If git-flow used a different prefix than expected, reliz finds the real tag and uses it for the rest of the release — the summary report always reflects the tag that was actually created.
 
 ### Environment variables
 

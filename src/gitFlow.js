@@ -4,6 +4,14 @@ const { execSync } = require('child_process');
 const path = require('path');
 const { setPackageVersion } = require('./version.js');
 const { appendChangelogEntry } = require('./changelog.js');
+const {
+  getGitFlowVersionTagPrefix,
+  syncGitFlowVersionTagPrefix,
+  buildTagName,
+  remoteBranchExists,
+  remoteTagExists,
+  verifyCreatedTag
+} = require('./tag.js');
 
 /**
  * @param {{ currentBranch: string, config: object }} context
@@ -46,7 +54,7 @@ function updateFiles(context) {
 }
 
 /**
- * @param {{ cwd: string, config: object, version: string, currentBranch: string, dryRun: boolean, commits: string[], dateStr: string }} context
+ * @param {{ cwd: string, config: object, version: string, currentBranch: string, dryRun: boolean, commits: string[], dateStr: string, tagPrefix?: string, tagPrefixSource?: string }} context
  */
 function performGitFlowRelease(context) {
   const { cwd, config, version: newVersion, currentBranch, dryRun, commits, dateStr } = context;
@@ -57,6 +65,28 @@ function performGitFlowRelease(context) {
   const updateContext = { ...context, version: newVersion };
 
   console.log('Starting git flow release process...');
+
+  // Align git-flow's versiontag prefix with the prefix reliz resolved so that
+  // the tag git-flow creates during `release finish` matches the tag name
+  // reliz will later push and report. When the prefix itself was inherited
+  // from git-flow ("gitflow" source), the two are already in sync.
+  const resolvedPrefix = context.tagPrefix != null
+    ? context.tagPrefix
+    : (config.tag?.prefix ?? '');
+  const currentGitFlowPrefix = getGitFlowVersionTagPrefix(cwd);
+  if (
+    context.tagPrefixSource !== 'gitflow' &&
+    currentGitFlowPrefix !== resolvedPrefix
+  ) {
+    const was = currentGitFlowPrefix === null
+      ? 'unset'
+      : `"${currentGitFlowPrefix}"`;
+    console.log(
+      `Syncing gitflow.prefix.versiontag to "${resolvedPrefix}" (was ${was}).`
+    );
+    syncGitFlowVersionTagPrefix(resolvedPrefix, cwd, dryRun);
+  }
+  const expectedTagName = buildTagName(resolvedPrefix, newVersion);
 
   let releaseBranchExists = false;
   try {
@@ -97,8 +127,32 @@ function performGitFlowRelease(context) {
     }
 
     const tagMsg = (config.tagMessage || `Release-${newVersion}`).replace(/\$\{version\}/g, newVersion);
-    console.log(`Finishing git flow release: ${newVersion}`);
-    execSync(`GIT_MERGE_AUTOEDIT=no GIT_EDITOR=true git flow release finish -m "${tagMsg}" ${newVersion}`, { stdio: 'inherit', cwd });
+    console.log(`Finishing git flow release: ${newVersion} (expected tag: ${expectedTagName})`);
+    execSync(
+      `GIT_MERGE_AUTOEDIT=no GIT_EDITOR=true git flow release finish -m "${tagMsg}" ${newVersion}`,
+      { stdio: 'inherit', cwd }
+    );
+
+    // Verify the tag git-flow actually created. If git-flow used a different
+    // version tag prefix than we expected (e.g. the user changed it between
+    // releases), prefer the real tag for all downstream operations (pushes,
+    // release notes, GitHub/GitLab release, summary).
+    const verified = verifyCreatedTag(expectedTagName, newVersion, cwd);
+    if (verified.matched) {
+      context.tagName = expectedTagName;
+    } else if (verified.alternative) {
+      console.warn(
+        `Expected tag ${expectedTagName} not found; git-flow created ${verified.tagName} instead. ` +
+        `Reliz will use the actual tag for the rest of the release.`
+      );
+      context.tagName = verified.tagName;
+    } else {
+      console.warn(
+        `Tag ${expectedTagName} was not created locally. ` +
+        `Check gitflow.prefix.versiontag and config.tag.prefix.`
+      );
+      context.tagName = expectedTagName;
+    }
 
     console.log('Pushing all branches and tags...');
 
@@ -124,21 +178,35 @@ function performGitFlowRelease(context) {
       } else throw pushErr;
     }
 
-    console.log(`Cleaning up remote release branch: ${releaseBranch}...`);
-    try {
-      execSync(`git push origin --delete ${releaseBranch}`, { stdio: 'inherit', cwd });
-    } catch (_) {}
-
-    const tagPrefix = config.tag?.prefix ?? 'v';
-    const tagName = tagPrefix ? `${tagPrefix}${newVersion}` : newVersion;
-    const localTags = execSync('git tag', { encoding: 'utf8', cwd }).split('\n').filter(Boolean);
-    if (localTags.includes(tagName)) {
-      execSync(`git push origin ${tagName}${pushSuffix}`, { stdio: 'inherit', cwd });
+    // Clean up the remote release branch only if it still exists. `git flow
+    // release finish` typically removes it already; blindly deleting would
+    // print a noisy (but harmless) "remote ref does not exist" error.
+    if (remoteBranchExists('origin', releaseBranch, cwd)) {
+      console.log(`Cleaning up remote release branch: ${releaseBranch}...`);
+      try {
+        execSync(`git push origin --delete ${releaseBranch}`, { stdio: 'inherit', cwd });
+      } catch (_) {
+        console.warn(`Failed to delete remote branch ${releaseBranch}; continuing.`);
+      }
     } else {
-      console.warn(`Tag ${tagName} does not exist locally. Skipping tag push.`);
+      console.log(`Remote release branch ${releaseBranch} already removed; skipping cleanup.`);
+    }
+
+    // Push the tag only if it exists locally and is not already on the remote.
+    // With `--follow-tags` (reliz default) the tag usually ships with the
+    // branch pushes above, so this step is a no-op in the common case.
+    const tagName = context.tagName;
+    const localTagExists = !verified.missing;
+    if (!localTagExists) {
+      console.warn(`Skipping tag push: ${tagName} is not present locally.`);
+    } else if (remoteTagExists('origin', tagName, cwd)) {
+      console.log(`Tag ${tagName} already present on origin; skipping tag push.`);
+    } else {
+      execSync(`git push origin ${tagName}${pushSuffix}`, { stdio: 'inherit', cwd });
     }
   } else {
-    console.log(`[dry-run] Would perform git flow release for ${newVersion}`);
+    console.log(`[dry-run] Would perform git flow release for ${newVersion} (expected tag: ${expectedTagName})`);
+    context.tagName = expectedTagName;
   }
 
   console.log('Git flow release completed successfully.');
