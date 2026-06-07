@@ -9,6 +9,7 @@
 - **Interactive or CI**: Prompts for bump type and confirmation locally; `--ci` or auto-detect CI env for non-interactive
 - **Changelog**: Auto-update CHANGELOG from commits or custom command; conventional filter/group; Persian (`fa-IR`) or Gregorian (`en-US`) date
 - **Pre-release**: Alpha/beta/rc versions via `--preid` or config
+- **Security audit**: Runs `npm audit` before releasing (on by default); reports each vulnerability with severity, a one-line description and the version it's fixed in, and lets you pick which packages to update. Disable via config/flag.
 - **Hooks**: `beforeInit`, `beforeRelease`, `afterGitRelease`, `afterBump`, `afterRelease` with template variables
 - **Optional**: Conventional-commit bump suggestion, npm publish (tag, OTP), GitHub Release (draft, prerelease), GitLab Release, plugins
 
@@ -66,6 +67,10 @@ npx reliz --changelog                # print changelog text and exit
 npx reliz --no-increment             # release current version (no bump)
 npx reliz --only-version             # prompt only for version, no confirm
 
+# Security audit (on by default before release)
+npx reliz patch --no-audit          # skip the security audit for this run
+npx reliz patch --audit             # force-enable even if disabled in config
+
 # Other
 npx reliz --verbose
 npx reliz --config .my-release.json
@@ -120,6 +125,13 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
     "release": false,
     "tokenRef": "GITLAB_TOKEN"
   },
+  "security": {
+    "enabled": true,
+    "level": "low",
+    "failOn": "high",
+    "autoUpdate": false,
+    "command": null
+  },
   "conventionalCommits": false,
   "preRelease": { "id": null },
   "plugins": []
@@ -158,6 +170,11 @@ Create `.reliz.json` in the project root (or use `package.json` under `"reliz"`)
 | `github.draft` | Create as draft | `false` |
 | `github.preRelease` | Mark as prerelease | `false` |
 | `gitlab.release` | Create GitLab Release | `false` |
+| `security.enabled` | Run `npm audit` before releasing | `true` |
+| `security.level` | Minimum severity to report/prompt (`info`/`low`/`moderate`/`high`/`critical`) | `low` |
+| `security.failOn` | In CI/non-interactive mode, block the release at this severity or higher | `high` |
+| `security.autoUpdate` | Apply all non-major fixes automatically without prompting | `false` |
+| `security.command` | Override audit command (must emit npm-style JSON; e.g. for yarn/pnpm) | `null` |
 | `conventionalCommits` | Suggest bump from commit messages | `false` |
 | `preRelease.id` | Pre-release id (alpha, beta, rc) | `null` |
 | `plugins` | Plugin module paths | `[]` |
@@ -172,11 +189,42 @@ Hook commands support: `${version}`, `${latestVersion}`, `${changelog}`, `${name
 - `RELIZ_YES=1` – skip confirmation
 - `RELIZ_NO_GIT_FLOW=1` – linear release
 - `RELIZ_PREID=beta` – pre-release id
+- `RELIZ_NO_AUDIT=1` – skip the security audit
+- `RELIZ_AUDIT=1` – force-enable the security audit
 - `GITHUB_TOKEN` – used when `github.release: true` (or set `github.tokenRef`)
 - `GITLAB_TOKEN` – used when `gitlab.release: true` (or set `gitlab.tokenRef`)
 - `NPM_OTP` – one-time password for npm publish when 2FA enabled
 
 CI is auto-detected when `CI=true`, `GITHUB_ACTIONS`, `GITLAB_CI`, `CIRCLECI`, `TRAVIS`, or `JENKINS_URL` is set.
+
+## Security audit
+
+Before performing the release/publish step, reliz runs `npm audit` (enabled by
+default). For every vulnerability at or above `security.level` it prints the
+package, severity, a one-line description and the version that fixes it:
+
+```
+⚠ 2 vulnerabilities found (1 critical, 1 moderate)
+
+   1. [critical] lodash <4.17.21
+        Prototype Pollution
+        fixed in 4.17.21
+   2. [moderate] axios <0.21.4
+        SSRF via redirect
+        fixed in 1.0.0 (major / possibly breaking)
+```
+
+- **Interactive**: you choose which packages to update (`1,3`, `a` for all
+  fixable, or `n`/Enter for none). Selected packages are installed at their
+  fixed version, so the change is included in the release commit. Fixes that
+  require a major bump are flagged and never selected by `a`.
+- **CI / non-interactive** (`--ci`/`--yes`): the release is blocked if any
+  vulnerability is `security.failOn` or higher. Set `security.autoUpdate: true`
+  to instead apply all non-major fixes automatically.
+- **No lockfile / non-npm project**: skipped with a warning (set
+  `security.command` to provide a yarn/pnpm equivalent that emits npm-style JSON).
+
+Disable it with `security.enabled: false`, `--no-audit`, or `RELIZ_NO_AUDIT=1`.
 
 ## Plugins
 
