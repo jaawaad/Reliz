@@ -13,6 +13,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -25,10 +27,58 @@ jobs:
       - run: npm run build --if-present
       - run: npm run test --if-present
 
+      - name: Verify npm publish access
+        run: |
+          set -euo pipefail
+
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::GitHub secret NPM_TOKEN is missing or empty."
+            echo "Create an npm Automation token (or Granular token with publish access for this package)"
+            echo "and add it under Settings → Secrets → Actions → NPM_TOKEN."
+            exit 1
+          fi
+
+          echo "Checking npm authentication..."
+          if ! NPM_USER=$(npm whoami 2>&1); then
+            echo "::error::npm whoami failed — NPM_TOKEN is invalid or expired."
+            echo "$NPM_USER"
+            echo "Regenerate the token on npmjs.com and update the NPM_TOKEN secret."
+            exit 1
+          fi
+          echo "Authenticated as: $NPM_USER"
+
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          echo "Package to publish: $PKG@$VER"
+
+          echo "Checking maintainer access..."
+          OWNERS=$(npm owner ls "$PKG" 2>&1) || {
+            echo "::error::Cannot read owners for '$PKG'. Token may lack access to this package."
+            echo "$OWNERS"
+            exit 1
+          }
+          if ! echo "$OWNERS" | grep -qF "$NPM_USER"; then
+            echo "::error::User '$NPM_USER' is not a maintainer of '$PKG' on npm."
+            echo "Current owners:"
+            echo "$OWNERS"
+            echo "Use a token from one of the accounts listed above."
+            exit 1
+          fi
+          echo "Maintainer access confirmed."
+
+          echo "Checking version is not already published..."
+          if npm view "$PKG@$VER" version >/dev/null 2>&1; then
+            echo "::error::$PKG@$VER already exists on npm. Bump the version before releasing."
+            exit 1
+          fi
+          echo "Version $VER is available."
+
+          echo "Running publish dry-run..."
+          npm publish --dry-run --access public
+          echo "Pre-flight checks passed."
+
       - name: Publish to npm
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         env:
