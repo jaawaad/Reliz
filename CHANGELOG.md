@@ -1,3 +1,9 @@
+## **[1.3.0] - 06/07/2026**
+- release: update version to 1.3.0 in RELEASE_NOTES.md
+- feat: implement manual release notes support and disable automatic GitHub releases
+- docs: enhance README with detailed security audit feature description and configuration options
+- feat: add security audit feature with configurable options and update GitHub release step to draft
+
 ## **[1.2.0] - 04/22/2026**
 - feat: enhance tag prefix resolution for releases
 
