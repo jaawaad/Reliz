@@ -96,9 +96,40 @@ function confirmRelease(summary, isCi = false, yes = false) {
   });
 }
 
+/**
+ * Prompt user to choose which vulnerable packages to update.
+ * Accepts comma/space separated indices, "a" (all fixable), or "n"/empty (none).
+ * Packages without an available fix, or whose fix is a major bump, are not
+ * selected by default and must be chosen explicitly.
+ * @param {Array<{name,severity,fixVersion,isMajorFix}>} vulns
+ * @returns {Promise<Array<object>>} selected vulnerabilities
+ */
+function selectPackagesToUpdate(vulns) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const prompt = 'Which packages to update? (e.g. 1,3  |  a = all fixable  |  n/enter = none): ';
+
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      rl.close();
+      const a = (answer || '').trim().toLowerCase();
+      if (a === '' || a === 'n' || a === 'no' || a === 'none') return resolve([]);
+      if (a === 'a' || a === 'all') {
+        return resolve(vulns.filter((v) => v.fixAvailable && !v.isMajorFix));
+      }
+      const picked = new Set();
+      for (const part of a.split(/[\s,]+/)) {
+        const num = parseInt(part, 10);
+        if (num >= 1 && num <= vulns.length) picked.add(num - 1);
+      }
+      resolve([...picked].map((i) => vulns[i]));
+    });
+  });
+}
+
 module.exports = {
   selectBumpType,
   selectPreId,
   confirmRelease,
+  selectPackagesToUpdate,
   BUMP_OPTIONS
 };

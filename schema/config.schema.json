@@ -77,6 +77,17 @@
         "tokenRef": { "type": "string", "default": "GITLAB_TOKEN" }
       }
     },
+    "security": {
+      "type": "object",
+      "description": "Security audit gate run before the release/publish step",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true, "description": "Run npm audit before releasing (default on)" },
+        "level": { "type": "string", "enum": ["info", "low", "moderate", "high", "critical"], "default": "low", "description": "Minimum severity to report/prompt about" },
+        "failOn": { "type": "string", "enum": ["low", "moderate", "high", "critical"], "default": "high", "description": "In CI/non-interactive mode, block the release at this severity or higher" },
+        "autoUpdate": { "type": "boolean", "default": false, "description": "Apply all non-major fixes automatically without prompting" },
+        "command": { "type": ["string", "null"], "default": null, "description": "Override audit command; must emit npm-style JSON (e.g. for yarn/pnpm)" }
+      }
+    },
     "conventionalCommits": { "type": "boolean", "default": false },
     "commitMessage": { "type": "string" },
     "tagMessage": { "type": "string" },

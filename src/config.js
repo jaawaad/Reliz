@@ -56,6 +56,13 @@ function getDefaults() {
       release: false,
       tokenRef: 'GITLAB_TOKEN'
     },
+    security: {
+      enabled: true,
+      level: 'low',
+      failOn: 'high',
+      autoUpdate: false,
+      command: null
+    },
     conventionalCommits: false,
     commitMessage: 'release: update version to ${version} and changelog',
     tagMessage: 'Release-${version}',
@@ -119,6 +126,8 @@ function loadFromEnv() {
   if (env.RELIZ_NO_GIT_FLOW === '1' || env.RELIZ_NO_GIT_FLOW === 'true') out.noGitFlow = true;
   if (env.RELIZ_YES === '1' || env.RELIZ_YES === 'true') out.yes = true;
   if (env.RELIZ_PREID) out.preid = env.RELIZ_PREID;
+  if (env.RELIZ_NO_AUDIT === '1' || env.RELIZ_NO_AUDIT === 'true') out.noAudit = true;
+  if (env.RELIZ_AUDIT === '1' || env.RELIZ_AUDIT === 'true') out.audit = true;
   return out;
 }
 
@@ -136,11 +145,15 @@ function parseArgv(argv) {
     releaseVersion: false,
     onlyVersion: false,
     changelog: false,
-    verbose: false
+    verbose: false,
+    noAudit: false,
+    audit: false
   };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--ci') out.ci = true;
+    else if (a === '--no-audit') out.noAudit = true;
+    else if (a === '--audit') out.audit = true;
     else if (a === '--dry-run') out.dryRun = true;
     else if (a === '--no-git-flow') out.noGitFlow = true;
     else if (a === '--yes' || a === '-y') out.yes = true;
@@ -198,6 +211,11 @@ function loadConfig(cwd, argv) {
   const isCi = parsed.ci || config.ci === true || (config.ci !== false && isCiEnv());
   if (isCi) config = { ...config, ci: true };
 
+  const noAudit = parsed.noAudit || envOverrides.noAudit || false;
+  const forceAudit = parsed.audit || envOverrides.audit || false;
+  if (noAudit) config = { ...config, security: { ...config.security, enabled: false } };
+  if (forceAudit) config = { ...config, security: { ...config.security, enabled: true } };
+
   return {
     config,
     argv: {
@@ -212,7 +230,9 @@ function loadConfig(cwd, argv) {
       releaseVersion: parsed.releaseVersion || false,
       onlyVersion: parsed.onlyVersion || false,
       changelog: parsed.changelog || false,
-      verbose: parsed.verbose || false
+      verbose: parsed.verbose || false,
+      noAudit,
+      audit: forceAudit
     }
   };
 }

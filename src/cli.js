@@ -12,6 +12,7 @@ const { runHooks } = require('./hooks.js');
 const { npmPublish } = require('./npm.js');
 const { createGitHubRelease } = require('./github.js');
 const { createGitLabRelease } = require('./gitlab.js');
+const { runSecurityAudit } = require('./security.js');
 const { loadPlugins, runPluginLifecycle, runPluginLifecycleAsync } = require('./plugins.js');
 
 function run() {
@@ -89,6 +90,13 @@ function run() {
   const effectiveYes = yes || onlyVersion;
 
   return Promise.resolve()
+    .then(() => runSecurityAudit({
+      cwd,
+      security: config.security,
+      isCi,
+      dryRun,
+      yes: effectiveYes
+    }))
     .then(() => {
       if (noIncrement) return null;
       if (bump) return bump;
